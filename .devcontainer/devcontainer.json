@@ -1,0 +1,21 @@
+{
+    "name": "AzDO LLM Environment",
+
+    "image": "mcr.microsoft.com/devcontainers/python:3.10",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-toolsai.jupyter",
+                "GitHub.copilot"
+            ],
+            "settings": {
+                "python.terminal.activateEnvInCurrentTerminal": true,
+                "python.defaultInterpreterPath": "/usr/local/bin/python"
+            }
+        }
+    },
+
+    "postCreateCommand": "pip3 install -r requirements.txt"
+}

@@ -1,0 +1,8 @@
+ipykernel
+langchain
+openai
+faiss-cpu
+tiktoken
+azure-devops
+python-dotenv
+beautifulsoup4
