@@ -11,7 +11,7 @@ What is the title and owner of the most recently completed user story?
 Summarize Alice's comments on Bob's PR for work item 234.
 ```
 
-_Note the techniques demonstrated here can be further optimized for specific use cases._
+_Note the techniques demonstrated in this repo are generalized and should be refined for specific use cases._
 
 ## Requirements
 
