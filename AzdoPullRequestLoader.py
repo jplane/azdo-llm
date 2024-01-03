@@ -38,7 +38,7 @@ class AzdoPullRequestLoader(BaseLoader):
         for repo in git_client.get_repositories(self.azdo_project):
             search_criteria = GitPullRequestSearchCriteria(repository_id=repo.id, status='all')
             for pr in git_client.get_pull_requests(repo.id, search_criteria):
-                documents.append(self._canonicalize(pr, git_client, wit_client))
+                documents.extend(self._canonicalize(pr, git_client, wit_client))
 
         return documents
 
@@ -53,15 +53,24 @@ class AzdoPullRequestLoader(BaseLoader):
         commits = []
 
         for commit in git_client.get_pull_request_commits(pr.repository.id, pr.pull_request_id):
-            commits.append(f"""
-                ----
+            
+            content = f"""
+                pull_request_commit_id: {commit.commit_id}
                 pull_request_commit_author: {commit.author.name}
                 pull_request_commit_date: {commit.author.date}
                 pull_request_commit_message: {self._extract_text(commit.comment)}
-                ----   
-            """)
+                pull_request_id: {pr.pull_request_id}
+            """
 
-        return "\n".join(commits)
+            metadata = {
+                "author": commit.author.name,
+                "pull_request_id": pr.pull_request_id,
+                "type": "pull_request_commit",
+            }
+
+            commits.append(Document(page_content=content, metadata=metadata))
+
+        return commits
 
     def _canonicalize_comments(self, pr, git_client):
 
@@ -70,16 +79,25 @@ class AzdoPullRequestLoader(BaseLoader):
         for thread in git_client.get_threads(pr.repository.id, pr.pull_request_id):
             if not thread.is_deleted:
                 for comment in thread.comments:
-                    comments.append(f"""
-                        ----
-                        pull_request_comment_owner: {comment.author.display_name}
-                        pull_request_comment_owner_unique_name: {comment.author.unique_name}
+                    
+                    content = f"""
+                        pull_request_comment_id: {comment.id}
+                        pull_request_comment_author: {comment.author.display_name}
+                        pull_request_comment_author_unique_name: {comment.author.unique_name}
                         pull_request_comment_published_date: {comment.published_date}
                         pull_request_comment_text: {self._extract_text(comment.content) if comment.content else ''}
-                        ----
-                    """)
+                        pull_request_id: {pr.pull_request_id}
+                    """
 
-        return "\n".join(comments)
+                    metadata = {
+                        "author": comment.author.display_name,
+                        "pull_request_id": pr.pull_request_id,
+                        "type": "pull_request_comment",
+                    }
+
+                    comments.append(Document(page_content=content, metadata=metadata))
+
+        return comments
 
     def _canonicalize_work_items(self, pr, git_client, wit_client):
 
@@ -87,16 +105,24 @@ class AzdoPullRequestLoader(BaseLoader):
 
         for work_item_ref in git_client.get_pull_request_work_item_refs(pr.repository.id, pr.pull_request_id):
             for work_item in wit_client.get_work_items([work_item_ref.id]):
-                work_items.append(f"""
-                    ----
+
+                content = f"""
                     pull_request_work_item_id: {work_item.id}
                     pull_request_work_item_title: {work_item.fields['System.Title']}
                     pull_request_work_item_owner: {work_item.fields['System.AssignedTo']}
                     pull_request_work_item_state: {work_item.fields['System.State']}
-                    ----
-                """)
+                    pull_request_id: {pr.pull_request_id}
+                """
 
-        return "\n".join(work_items)
+                metadata = {
+                    "author": work_item.fields['System.AssignedTo'],
+                    "pull_request_id": pr.pull_request_id,
+                    "type": "pull_request_work_item",
+                }
+
+                work_items.append(Document(page_content=content, metadata=metadata))
+
+        return work_items
 
     def _canonicalize(self, pr, git_client, wit_client):
 
@@ -110,22 +136,20 @@ class AzdoPullRequestLoader(BaseLoader):
 
             pull_request_description:
             {self._extract_text(pr.description) if pr.description else ''}
-
-            pull_request_commits:
-            {self._canonicalize_commits(pr, git_client)}
-
-            pull_request_comments:
-            {self._canonicalize_comments(pr, git_client)}
-
-            pull_request_work_items:
-            {self._canonicalize_work_items(pr, git_client, wit_client)}
         """
 
         metadata = {
             "id": pr.pull_request_id,
-            "title": pr.title,
             "owner": pr.created_by.display_name,
-            "type": "pr"
+            "type": "pull_request",
         }
 
-        return Document(page_content=content, metadata=metadata)
+        docs = []
+
+        docs.append(Document(page_content=content, metadata=metadata))
+
+        docs.extend(self._canonicalize_commits(pr, git_client))
+        docs.extend(self._canonicalize_comments(pr, git_client))
+        docs.extend(self._canonicalize_work_items(pr, git_client, wit_client))
+
+        return docs
