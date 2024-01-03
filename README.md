@@ -1,6 +1,6 @@
 # Querying Azure Devops with OpenAI
 
-This repo demonstrates how to query AzDO content using [langchain integration with Azure OpenAI](https://python.langchain.com/docs/integrations/chat/azure_chat_openai).
+This repo demonstrates how to query AzDO content using [Langchain integration with Azure OpenAI](https://python.langchain.com/docs/integrations/chat/azure_chat_openai).
 
 Specifically, it defines custom [document loaders](https://python.langchain.com/docs/modules/data_connection/document_loaders/) for [user stories](./AzdoBacklogLoader.py) and [pull requests](./AzdoPullRequestLoader.py) to facilitate Q&A like:
 
